@@ -20,13 +20,14 @@ class InputPipeLine(object):
     self._build_cls_dict()
 
     self.videos = []
+    #input_file_name train_data.txt
     with open(input_file_name, 'r') as f:
       for path in f.readlines():
         path = path.strip()
         if path:
           self.videos.append(path.strip())
 
-    # placeholders
+    # placeholders - A placeholder is simply a variable that we will assign data to at a later date
     self.rgb = tf.placeholder(tf.string, shape=[self.num_frames])
     self.flow_x = tf.placeholder(tf.string, shape=[self.num_frames])
     self.flow_y = tf.placeholder(tf.string, shape=[self.num_frames])
@@ -47,19 +48,25 @@ class InputPipeLine(object):
     videos = self.videos
     while True:
       np.random.shuffle(videos) # random shuffle every epoch
+      # for each video path in train_data.txt, get the absolute path to each of the rgb img's and flows
+      # example path: /media/6TB/Videos/UCF-101-frames/v_VolleyballSpiking_g25_c02
       for video_path in videos:
-        cls_name = video_path.split('_')[1]
-        sorted_list = np.sort(os.listdir(video_path))
+        cls_name = video_path.split('_')[1] # Get the class from the path
+        sorted_list = np.sort(os.listdir(video_path)) # Sort the files inside the directory for the current video
+        #The following 3 lines just store all the absolute paths inside the directory at hand
         imgs = [os.path.join(video_path, img) for img in sorted_list if img.startswith('img')]
         flow_xs = [os.path.join(video_path, flow) for flow in sorted_list if flow.startswith('flow_x')]
         flow_ys = [os.path.join(video_path, flow) for flow in sorted_list if flow.startswith('flow_y')]
+        # assert that we have the same number of imgs and flows
         assert len(imgs) == len(flow_xs)
         assert len(imgs) == len(flow_ys)
+        #If the number of frames specified does not equal the number of imgs/flow then 
         if self.num_frames <= len(imgs):
           begin = np.random.randint(0, len(imgs) - self.num_frames + 1)
         else:
           begin = 0
           ori_len = len(imgs)
+          #Loop video till the # of frames is correct.
           while len(imgs) < self.num_frames:
             for i in range(0, ori_len, self.stride):
               imgs.append(imgs[i])
@@ -68,9 +75,13 @@ class InputPipeLine(object):
               if len(imgs) == self.num_frames:
                 break
 
+        #Get the correct 64 frame 
         imgs_out = imgs[begin:begin + self.num_frames]
         flow_xs_out = flow_xs[begin:begin + self.num_frames]
         flow_ys_out = flow_ys[begin:begin + self.num_frames]
+
+        # A Session object encapsulates the environment in which Operation objects are executed, and Tensor objects are evaluated.
+        # Use "with" to release resources after the session is done.
         sess.run(enqueue_op, {self.rgb: imgs_out, self.flow_x: flow_xs_out, self.flow_y: flow_ys_out, self.label: self.cls_dict[cls_name.lower()]})
       if self.num_epochs is not None:
         epoch += 1
@@ -139,6 +150,7 @@ class InputPipeLine(object):
     return rgbs, flows, labels
 
   def prefetch_queue(self):
+    print("In prefetch_queue")
     queue = tf.PaddingFIFOQueue(capacity=2,
                                 dtypes=[tf.float32, tf.float32, tf.int32], 
                                 shapes=[[None, NUM_FRAMES, CROP_SIZE, CROP_SIZE, 3],

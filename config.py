@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 FRAME_DATA_PATH = '/media/6TB/Videos/UCF-101-frames'
-NUM_GPUS = 4
+NUM_GPUS = 1
 CROP_SIZE = 224
 NUM_CLASSES = 101
 BATCH_SIZE = 3

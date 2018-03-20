@@ -96,6 +96,7 @@ if __name__ == '__main__':
 
   train_prefetch_queue = train_pipeline.prefetch_queue()
   val_prefetch_queue = val_pipeline.prefetch_queue()
+  print("After prefetch")
 
   # prefetch train/val batch
   # train_prefetch_queue = tf.PaddingFIFOQueue(capacity=2,

@@ -44,10 +44,10 @@ def evaluate(input_file, ckpt_dir, top_k=None):
 
       ckpt = tf.train.get_checkpoint_state(ckpt_dir)
       if ckpt and ckpt.model_checkpoint_path:
-        print 'Restoring from:', ckpt.model_checkpoint_path
+        print('Restoring from:'), ckpt.model_checkpoint_pathppy
         saver.restore(sess, ckpt.model_checkpoint_path)
       else:
-        print 'error restoring ckpt...'
+        print('error restoring ckpt...')
         return
 
       coord = tf.train.Coordinator()
@@ -75,7 +75,7 @@ def evaluate(input_file, ckpt_dir, top_k=None):
       coord.request_stop()
       coord.join(threads)
 
-      print 'eval accuracy: %.3f' % (true_count / len(pipeline.videos))
+      print('eval accuracy: %.3f' % (true_count / len(pipeline.videos)))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
