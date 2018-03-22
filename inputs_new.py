@@ -44,6 +44,7 @@ class InputPipeLine(object):
         self.cls_dict[cls_name.lower()] = int(ind) - 1
 
   def _enqueue(self, sess, enqueue_op):
+    print("In enqueue")
     epoch = 0
     videos = self.videos
     while True:
@@ -52,8 +53,9 @@ class InputPipeLine(object):
       # example path: /media/6TB/Videos/UCF-101-frames/v_VolleyballSpiking_g25_c02
       for video_path in videos:
         cls_name = video_path.split('_')[1] # Get the class from the path
-        sorted_list = np.sort(os.listdir(video_path)) # Sort the files inside the directory for the current video
+        sorted_list = np.sort(os.listdir(video_path)) # Sort the video paths
         #The following 3 lines just store all the absolute paths inside the directory at hand
+        #The directories of each video_path hold 64 frames of img and flow x and flow y (flow x and flow y are 1 channel)
         imgs = [os.path.join(video_path, img) for img in sorted_list if img.startswith('img')]
         flow_xs = [os.path.join(video_path, flow) for flow in sorted_list if flow.startswith('flow_x')]
         flow_ys = [os.path.join(video_path, flow) for flow in sorted_list if flow.startswith('flow_y')]
@@ -87,6 +89,7 @@ class InputPipeLine(object):
         epoch += 1
         if epoch == self.num_epochs:
           break
+    print("done")
     sess.run(self.queue.close(cancel_pending_enqueues=True))
 
 
