@@ -32,19 +32,27 @@ def restore():
   rgb_variable_map = {}
   for variable in tf.global_variables():
     if variable.name.split('/')[0] == 'RGB':
-      if 'Logits' in variable.name: # skip the last layer
-        continue
+      # if 'Logits' in variable.name: # skip the last layer #this is normally hereee!
+      #   continue
       rgb_variable_map[variable.name.replace(':0', '')] = variable
+
+  #To save & restore variables in the rgb model. (Because trained separately)
+  #specified rgb_variable_map as the variable(s) to restore
+  #KWARG - keyword argument, normally has defualts set
+  print("RGB variable map")
+  #print(rgb_variable_map)
   rgb_saver = tf.train.Saver(var_list=rgb_variable_map, reshape=True)
   # flow
   flow_variable_map = {}
   for variable in tf.global_variables():
     if variable.name.split('/')[0] == 'Flow':
-      if 'Logits' in variable.name: # skip the last layer
-        continue
+      # if 'Logits' in variable.name: # skip the last layer
+      #   continue
       flow_variable_map[variable.name.replace(':0', '')] = variable
+  #To save & restore variables in the flow model. (Because trained separately)
+  z = {**rgb_variable_map, **flow_variable_map}
   flow_saver = tf.train.Saver(var_list=flow_variable_map, reshape=True)
-  return rgb_saver, flow_saver
+  return rgb_saver, flow_saver, z
 
 
 def tower_inference(rgb_inputs, flow_inputs, labels):
@@ -134,27 +142,47 @@ if __name__ == '__main__':
   avg_loss = tf.reduce_mean(tower_losses)
   grads = average_gradients(tower_grads)
   train_op = opt.apply_gradients(grads)
-  rgb_saver, flow_saver = restore()
+  rgb_saver, flow_saver, z = restore() #The savers are created. Now ready for restore
+
+
+  #Where the checkpoint is saved?
 
   # saver for fine tuning
   if not os.path.exists(TMPDIR):
     os.mkdir(TMPDIR)
-  saver = tf.train.Saver(max_to_keep=SAVER_MAX_TO_KEEP)
-  ckpt_path = os.path.join(TMPDIR, 'ckpt')
+  saver = tf.train.Saver(max_to_keep=SAVER_MAX_TO_KEEP) # number of checkpoints to keep?
+  ckpt_path = os.path.join(TMPDIR, 'ckpt') #where the checkpoints are saved
   if not os.path.exists(ckpt_path):
     os.mkdir(ckpt_path)
 
   with tf.Session(config=tf.ConfigProto(allow_soft_placement=False, log_device_placement=False)) as sess:
     sess.run(tf.global_variables_initializer())
+    print("In finding checkpoint")
 
-    ckpt = tf.train.get_checkpoint_state(ckpt_path)
+    ckpt = tf.train.get_checkpoint_state(ckpt_path) #./tmpdir
+    #print(ckpt.model_checkpoint_path)
     if ckpt and ckpt.model_checkpoint_path:
-      tf.logging.info('Restoring from: %s', ckpt.model_checkpoint_path)
-      saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
-    else:
-      tf.logging.info('No checkpoint file found, restoring pretrained weights...')
+      print("In if")
+      # print("Restoring " + str(ckpt) + " ANND: " + str(ckpt.model_checkpoint_path))
+      # print(" Also: " + str(ckpt.all_model_checkpoint_paths[-1]))
+      # tf.logging.info('Restoring from: %s', ckpt.model_checkpoint_path)
+      # saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
       rgb_saver.restore(sess, CHECKPOINT_PATHS['rgb_imagenet'])
       flow_saver.restore(sess, CHECKPOINT_PATHS['flow_imagenet'])
+      saver.save(sess, os.path.join(ckpt_path, 'model_ckpt'))
+      #sys.exit()
+    else:
+      print("In else")
+      tf.logging.info('No checkpoint file found, restoring pretrained weights...')
+      sess2 = tf.Session()
+      sess2.run(tf.global_variables_initializer())
+      for key in z:
+        print(key)
+      saver = tf.train.Saver(var_list=z) # z is a combined dict.
+      rgb_saver.restore(sess2, CHECKPOINT_PATHS['rgb_imagenet'])
+      flow_saver.restore(sess2, CHECKPOINT_PATHS['flow_imagenet'])
+      saver.save(sess2, os.path.join(ckpt_path, 'model_ckpt'), 0)
+      #exit()
       tf.logging.info('Restore Complete.')
 
     coord = tf.train.Coordinator()
@@ -167,7 +195,7 @@ if __name__ == '__main__':
     tf.logging.set_verbosity(tf.logging.INFO)
 
     try:
-      it = 0
+      it = 0 #iteration number
       last_time = time.time()
       last_step = 0
       val_time = 0
@@ -181,6 +209,7 @@ if __name__ == '__main__':
           ])
           summary_writer.add_summary(loss_summ, it)
 
+        #If it is the saver iteration, then save the sessions variables.
         if it % SAVE_ITER == 0 and it > 0:
           saver.save(sess, os.path.join(ckpt_path, 'model_ckpt'), it)
 

@@ -21,17 +21,18 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
+from config import*
+
 import i3d
 
 _IMAGE_SIZE = 224
 _NUM_CLASSES = 400
 
-_SAMPLE_VIDEO_FRAMES = 79
+_SAMPLE_VIDEO_FRAMES = 64
 _SAMPLE_PATHS = {
-    'rgb': 'data/v_CricketShot_g04_c01_rgb.npy',
-    'flow': 'data/v_CricketShot_g04_c01_flow.npy',
+    'rgb': 'data/outRGB.npy',
+    'flow': 'data/outFlow.npy',
 }
-
 _CHECKPOINT_PATHS = {
     'rgb': 'data/checkpoints/rgb_scratch/model.ckpt',
     'flow': 'data/checkpoints/flow_scratch/model.ckpt',
@@ -100,8 +101,17 @@ def main(unused_argv):
   with tf.Session() as sess:
     feed_dict = {}
     if eval_type in ['rgb', 'joint']:
+      print(imagenet_pretrained)
       if imagenet_pretrained:
-        rgb_saver.restore(sess, _CHECKPOINT_PATHS['rgb_imagenet'])
+        #rgb_saver.restore(sess, _CHECKPOINT_PATHS['rgb_imagenet'])
+        #rgb_saver.restore(sess,MAYBEWORK_DIR)
+        #flow_saver.restore(sess,MAYBEWORK_DIR)
+        z = {**rgb_variable_map, **flow_variable_map}
+        for key in z:
+          print(key)
+        saver = tf.train.Saver(var_list=z)
+        sess.run(tf.global_variables_initializer())
+        saver.restore(sess,MAYBEWORK_DIR)
       else:
         rgb_saver.restore(sess, _CHECKPOINT_PATHS['rgb'])
       tf.logging.info('RGB checkpoint restored')
@@ -111,7 +121,8 @@ def main(unused_argv):
 
     if eval_type in ['flow', 'joint']:
       if imagenet_pretrained:
-        flow_saver.restore(sess, _CHECKPOINT_PATHS['flow_imagenet'])
+        #flow_saver.restore(sess, _CHECKPOINT_PATHS['flow_imagenet'])
+        print("Do nothing, already loaded")
       else:
         flow_saver.restore(sess, _CHECKPOINT_PATHS['flow'])
       tf.logging.info('Flow checkpoint restored')
@@ -129,9 +140,9 @@ def main(unused_argv):
 
     print('Norm of logits: %f' % np.linalg.norm(out_logits))
     print('\nTop classes and probabilities')
+    print(eval_type)
     for index in sorted_indices[:20]:
       print(out_predictions[index], out_logits[index], kinetics_classes[index])
-
 
 if __name__ == '__main__':
   tf.app.run(main)

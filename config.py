@@ -3,7 +3,7 @@
 FRAME_DATA_PATH = '/trainingData/videos/frames'
 NUM_GPUS = 1
 CROP_SIZE = 224
-NUM_CLASSES = 101
+NUM_CLASSES = 400 # Regularly 400
 BATCH_SIZE = 1 # Regularly 3
 NUM_FRAMES = 64 
 FRAME_STRIDE = NUM_FRAMES
@@ -20,14 +20,16 @@ CHECKPOINT_PATHS = {
 }
 
 LR = 0.01 # can change it to exponentially decay with global steps
-TMPDIR = './tmp'
+TMPDIR = './tmp' #Where the checkpoints get saved
 LOGDIR = './log'
+
+MAYBEWORK_DIR = "tmp/ckpt/model_ckpt-30"
 
 TRAIN_DATA = 'train_data.txt'
 VAL_DATA = 'val_data.txt'
 
-DISPLAY_ITER = 100 
-SAVE_ITER = 100 #How often it saves? normally 1000
+DISPLAY_ITER = 10
+SAVE_ITER = 1 #How often it saves? normally 1000
 VAL_ITER = 1000 #When it peforms validation?
 THROUGH_PUT_ITER = 99
 
